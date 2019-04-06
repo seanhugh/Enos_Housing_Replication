@@ -1,0 +1,56 @@
+---
+title: "Enos_Replication"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# I will be recreaeting all figures from the paper:
+#   "What the Demolition of Public Housing Teaches Us
+#      about the Impact of Racial Threat
+#      on Political Behavior" by Ryan Enos
+
+# Load libraries
+library(lme4)
+library(mediation)
+library(ggplot2)
+library(gt)
+library(foreign)
+library(broom)
+library(stargazer)
+library(CIplot)
+library(gplots)
+library(rstanarm)
+library(tidybayes)
+library(ggplot2)
+library(jtools)
+library(bayesplot)
+library(BLR)
+library(kableExtra)
+library(tidyverse)
+
+```
+
+
+
+```{r}
+
+
+
+
+
+
+```
+
+
+```{r}
+
+
+
+
+```
+
+
+
+

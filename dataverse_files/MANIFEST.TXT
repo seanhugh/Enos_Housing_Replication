@@ -1,0 +1,10 @@
+black.treat.effect.conf.boot.lower.csv (text/plain; charset=US-ASCII) 1843 bytes.
+black.treat.effect.conf.boot.upper.csv (text/plain; charset=US-ASCII) 1863 bytes.
+black.treat.effect.mean.boot.csv (text/plain; charset=US-ASCII) 1837 bytes.
+black.treat.N.csv (text/plain; charset=US-ASCII) 563 bytes.
+create_tables_and_figures_only.r (text/plain; charset=US-ASCII) 16257 bytes.
+data.turnout.csv (text/plain; charset=US-ASCII) 209113548 bytes.
+data.votechoice.2000.csv (text/plain; charset=US-ASCII) 343412 bytes.
+data.votechoice.2010.csv (text/plain; charset=US-ASCII) 386416 bytes.
+demolished.vote.differences.csv (text/plain; charset=US-ASCII) 2311 bytes.
+distance.vote.differences.csv (text/plain; charset=US-ASCII) 2311 bytes.
