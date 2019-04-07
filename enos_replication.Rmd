@@ -12,45 +12,423 @@ knitr::opts_chunk$set(echo = TRUE)
 #      on Political Behavior" by Ryan Enos
 
 # Load libraries
-library(lme4)
-library(mediation)
 library(ggplot2)
-library(gt)
-library(foreign)
-library(broom)
 library(stargazer)
-library(CIplot)
-library(gplots)
-library(rstanarm)
-library(tidybayes)
 library(ggplot2)
-library(jtools)
-library(bayesplot)
-library(BLR)
-library(kableExtra)
 library(tidyverse)
+library(dplyr)
+library(apsrtable)
 
 ```
 
+```{r setup2, include=FALSE}
 
+##create_tables_and_figures_only.r
+###create output for Enos 'What the Demolition of Public Housing Teaches Us About the Impact of Racial Threat on Political Behavior' 
+###RdE June 2014
 
-```{r}
+rm(list = ls())
 
+cat('creating output \n')
 
+###master graphic parameters for graphics 
+ylims = c(-.35,.1)
+ylims.2 = c(-.45,.1)
+xlims = c(.5,11)
+dists = seq(from = 1000, to = 100, by = -100) ###DELETE THIS LATER
+xs = seq(1:length(dists))
+ys = seq(from = -.35, to = .1, by = .05)
+ys.lab = c('-0.35','-0.30', '-0.25','-0.20','-0.15','-0.10','-0.05','0.00','0.05','0.10')
+ys.2 = seq(from = -.45, to = .1, by = .05)
+ys.lab.2 = c('-0.45','-0.40','-0.35','-0.30', '-0.25','-0.20','-0.15','-0.10','-0.05','0.00','0.05','0.10')
 
+offsets = .15
+text.offsets = .025
+cex.axis = .9
+cex.N = .7
+top.text.adj = c(1.3,1.3) ##offsets on labels to reduce crowding
+bottom.text.adj = c(-.15,-.85)
+point.size = 2
+line.offset = .0175
+
+```
+
+## Figure 1
+
+I was able to succesfully recreate all of figure 1.
+
+```{r fig1, echo=FALSE}
+
+#############################
+# Figure 1: Treatment Effects
+#############################
+
+##load data
+wtreat = read.csv('dataverse_files/white.treat.effect.mean.boot.csv') 
+wtreat.lower = read.csv('dataverse_files/white.treat.effect.conf.boot.lower.csv') 
+wtreat.upper = read.csv('dataverse_files/white.treat.effect.conf.boot.upper.csv') 
+Nwtreat = read.csv('dataverse_files/white.treat.N.csv')
+btreat = read.csv('dataverse_files/black.treat.effect.mean.boot.csv') 
+btreat.lower = read.csv('dataverse_files/black.treat.effect.conf.boot.lower.csv') 
+btreat.upper = read.csv('dataverse_files/black.treat.effect.conf.boot.upper.csv') 
+Nbtreat = read.csv('dataverse_files/black.treat.N.csv')
+##letters for marking graphs, one is not used
+use.letters = c('a','b','c','d','e','f','skip','g','h')
+
+##cycle through each line of data, each of which are groups defined by diferent namepcts
+#for(i in 1:nrow(wtreat)){ ##turning into matrices helps below with segment function
+i <- 7;
+
+	use.wtreat = as.matrix(wtreat[i,])
+	use.wlower = as.matrix(wtreat.lower[i,])
+	use.wupper = as.matrix(wtreat.upper[i,])
+	use.Nwtreat = as.matrix(Nwtreat[i,])
+	
+	use.btreat = as.matrix(btreat[i,])
+	use.blower = as.matrix(btreat.lower[i,])
+	use.bupper = as.matrix(btreat.upper[i,])
+	use.Nbtreat = as.matrix(Nbtreat[i,])
+	
+##name graphs
+#	if(i == 7){
+#		pdf('output/Figure_1.pdf')
+#	}
+#	else{
+#		pdf(paste('appendix_output/Figure_A1',use.letters[i],'.pdf',sep=''))
+#		}			
+	par(las = 1)
+	par(mar = c(5.1, 4.1, .5, .5))
+	plot(xs, use.wtreat,
+		ylim = ylims,
+		xlim = xlims,
+		type = 'n',
+		ylab = 'Treatment Effect',
+		xlab = 'Treated Group Distance from Projects',
+		xaxt = 'n',
+		yaxt = 'n.csv')
+	abline(h = 0, lty = 2)
+
+###draw lines first because I want them to be covered by points
+	####create spaces in lines using the offset (this allows the N to be displayed with the text() function)
+	##black lines are offset to the left, white lines to the right	
+	segments(x0= xs[1:2]+offsets, x1 = xs[1:2]+offsets, ##only do it for low N blacks because otherwise lines look funny
+		y0 = use.btreat[,1:2], y1 =	use.blower[,1:2])
+	segments(x0= xs[1:2]+offsets, x1 = xs[1:2]+offsets,
+		y0 = use.btreat[,1:2] + line.offset, 	y1 =	use.bupper[,1:2])
+  ##now the others
+	segments(x0= xs[3:10]+offsets, x1 = xs[3:10]+offsets,
+		y0 = use.blower[,3:10], 	y1 =	use.bupper[,3:10])
+		
+	segments(x0= xs-offsets, x1 = xs-offsets, ##bottomlines
+		y0 = use.wtreat - line.offset, 	y1 =	use.wlower)
+	segments(x0= xs-offsets, x1 = xs-offsets, ##toplines
+		y0 = use.wtreat, 	y1 =	use.wupper)
+
+  
+  ##points and N descriptions
+	points(xs-offsets, use.wtreat,
+	       cex = point.size,
+	       pch = 21, 
+	       bg = 'white',
+	       col = 'black')
+	text(xs-offsets,use.wtreat,
+	     paste('(',use.Nwtreat,')',sep = ''),
+	     cex = cex.N,
+	     #adj = top.text.adj
+	     pos = 1
+	    )
+	
+	points(xs+offsets, use.btreat,
+	       pch = 16,
+	       cex = point.size)
+	text(xs+offsets,use.btreat,
+	     paste('(',use.Nbtreat,')',sep = ''),
+	     cex = cex.N,
+	     #adj = bottom.text.adj
+	     pos = 3
+	    )
+	
+	axis(side = 1,
+		at = xs,
+		label = seq(100,1000,100),
+		cex.axis = cex.axis
+		)
+	axis(side = 2,
+		at = ys,
+		label = ys.lab,
+		cex.axis = cex.axis
+		)	
+
+	#dev.off()
 
 
 
 ```
 
+## Figure 2
 
-```{r}
+I was able to succesfully recreate all of figure 2.
+
+```{r fig2, echo=FALSE}
+
+#################
+# Figures 2 
+#################
+
+##this cycles thorugh a bunch of dataframes, each of which is needed for a different graph
+for(figure in c('white.demo.main')){
+	if(figure == 'white.basic.main'){
+		##this group is different than the rest because the second set is not actually a diff in diff, but calling it "diffs" for consistency
+		treat = read.csv('dataverse_files/white.match.basic.csv')
+		treat.2 = read.csv('dataverse_files/white.match.basic.property.csv')
+		fig.nums = c('A3','A4') ##figure names
+		pchs = c(17,17) ##point types
+		}
+	if(figure == 'white.demo.main'){
+		treat = read.csv('dataverse_files/white.match.nondemolished.csv')
+		diffs = read.csv('dataverse_files/white.match.nondemolished.diffs.csv')
+		fig.nums = c('2','A5')
+		pchs = c(17,22)
+		}
+	if(figure == 'white.demo.property'){
+		treat = read.csv('dataverse_files/white.match.nondemolished.property.csv')
+		diffs = read.csv('dataverse_files/white.match.nondemolished.diffs.property.csv')
+		fig.nums = c('A6','A7')	
+		pchs = c(17,22)
+		}	
+	if(figure == 'white.demo.localrace'){
+		treat = read.csv('dataverse_files/white.match.nondemolished.localrace.csv')
+		diffs = read.csv('dataverse_files/white.match.nondemolished.diffs.localrace.csv')
+		fig.nums = c('A8','A9')			
+		pchs = c(17,22)
+		}
+	if(figure == 'blackmain'){
+		treat = read.csv('dataverse_files/white.match.black.property.csv')
+		diffs = read.csv('dataverse_files/white.match.black.diffs.property.csv')
+		fig.nums = c('3','A12')
+		pchs = c(17,21)			
+		}
+	if(figure == 'blackcensus'){
+		treat = read.csv('dataverse_files/white.match.black.csv')
+		diffs = read.csv('dataverse_files/white.match.black.diffs.csv')
+		fig.nums = c('A10','A11')
+		pchs = c(17,21)	
+		}
 
 
+	##define axis for different graphs
+	if(figure %in% c('white.basic.main','white.demo.main','blackmain')){
+			use.ylims = ylims
+			use.ys.lab = ys.lab
+			use.ys = ys
+		}
+	else{
+			use.ylims = ylims.2
+			use.ys.lab = ys.lab.2
+			use.ys = ys.2
+		}
+
+	##go through pairs for each pair of dataframe
+	for(i in 1){
+		if(i == 1){ 	
+			use.treat = treat$coefficient			
+			clower = use.treat-(1.96*treat$stdev)
+			cupper = use.treat+(1.96*treat$stdev)
+			use.N.treat = treat$N.treatment + treat$N.control
+			}			
+		if(i == 2 & figure != 'white.basic.main'){	
+			use.treat = diffs$mean.diff			
+			clower = diffs$low.ci
+			cupper = diffs$high.ci
+			use.N.treat = diffs$N
+			}	
+		if(i == 2 & figure == 'white.basic.main'){	##white.basic.main figures have slightly different structure 
+			use.treat = treat.2$coefficient			
+			clower = use.treat- (1.96*treat.2$stdev)
+			cupper = use.treat+(1.96*treat.2$stdev)
+			use.N.treat = treat.2$N.treatment + treat.2$N.control
+			}
+		if(figure %in% c('white.demo.main','blackmain') & i ==1){
+				#pdf(paste('output/Figure_',fig.nums[i],'.pdf',sep=''))
+				}
+		else{	
+			#pdf(paste('appendix_output/Figure_',fig.nums[i],'.pdf',sep=''))
+			}
+			par(las = 1)
+			par(mar = c(5.1, 4.1, .5, .5))
+			plot(xs, use.treat,
+				ylim = use.ylims,
+				xlim = xlims,
+				type = 'n',
+				ylab = 'Treatment Effect',
+				xlab = 'Treated Group Distance from Projects',
+				xaxt = 'n',
+				yaxt = 'n')
+			abline(h = 0, lty = 2)
+				
+			segments(x0=xs,x1=xs,
+						y0= use.treat+line.offset,y1=cupper)
+			segments(x0=xs,x1=xs,
+						y0= use.treat,y1=clower)
+
+		### Treatment Effects
+			points(xs, use.treat, 
+				pch = pchs[i], 
+				cex = point.size,
+					bg = 'white',
+       			col = 'black')
+			text(xs,use.treat,
+			     paste('(',use.N.treat,')',sep = ''),
+			     cex = cex.N,
+			     pos = 3
+			  )
+			axis(side = 1,
+					at = xs,
+					label = seq(100,1000,100),
+					cex.axis = cex.axis
+					)
+			axis(side = 2,
+					at = use.ys,
+					label = use.ys.lab,
+					cex.axis = cex.axis
+					)	
+			
+		}
+	}	
 
 
 ```
 
+##Figure 3
+
+I was able to succesfully recreate all of figure 3.
+
+```{r fig3, echo=FALSE}
+
+#################
+# Figures 3
+#################
+
+##this cycles thorugh a bunch of dataframes, each of which is needed for a different graph
+for(figure in c('blackmain')){
+	if(figure == 'white.basic.main'){
+		##this group is different than the rest because the second set is not actually a diff in diff, but calling it "diffs" for consistency
+		treat = read.csv('dataverse_files/white.match.basic.csv')
+		treat.2 = read.csv('dataverse_files/white.match.basic.property.csv')
+		fig.nums = c('A3','A4') ##figure names
+		pchs = c(17,17) ##point types
+		}
+	if(figure == 'white.demo.main'){
+		treat = read.csv('dataverse_files/white.match.nondemolished.csv')
+		diffs = read.csv('dataverse_files/white.match.nondemolished.diffs.csv')
+		fig.nums = c('2','A5')
+		pchs = c(17,22)
+		}
+	if(figure == 'white.demo.property'){
+		treat = read.csv('dataverse_files/white.match.nondemolished.property.csv')
+		diffs = read.csv('dataverse_files/white.match.nondemolished.diffs.property.csv')
+		fig.nums = c('A6','A7')	
+		pchs = c(17,22)
+		}	
+	if(figure == 'white.demo.localrace'){
+		treat = read.csv('dataverse_files/white.match.nondemolished.localrace.csv')
+		diffs = read.csv('dataverse_files/white.match.nondemolished.diffs.localrace.csv')
+		fig.nums = c('A8','A9')			
+		pchs = c(17,22)
+		}
+	if(figure == 'blackmain'){
+		treat = read.csv('dataverse_files/white.match.black.property.csv')
+		diffs = read.csv('dataverse_files/white.match.black.diffs.property.csv')
+		fig.nums = c('3','A12')
+		pchs = c(17,21)			
+		}
+	if(figure == 'blackcensus'){
+		treat = read.csv('dataverse_files/white.match.black.csv')
+		diffs = read.csv('dataverse_files/white.match.black.diffs.csv')
+		fig.nums = c('A10','A11')
+		pchs = c(17,21)	
+		}
 
 
+	##define axis for different graphs
+	if(figure %in% c('white.basic.main','white.demo.main','blackmain')){
+			use.ylims = ylims
+			use.ys.lab = ys.lab
+			use.ys = ys
+		}
+	else{
+			use.ylims = ylims.2
+			use.ys.lab = ys.lab.2
+			use.ys = ys.2
+		}
+
+	##go through pairs for each pair of dataframe
+	for(i in 1){
+		if(i == 1){ 	
+			use.treat = treat$coefficient			
+			clower = use.treat-(1.96*treat$stdev)
+			cupper = use.treat+(1.96*treat$stdev)
+			use.N.treat = treat$N.treatment + treat$N.control
+			}			
+		if(i == 2 & figure != 'white.basic.main'){	
+			use.treat = diffs$mean.diff			
+			clower = diffs$low.ci
+			cupper = diffs$high.ci
+			use.N.treat = diffs$N
+			}	
+		if(i == 2 & figure == 'white.basic.main'){	##white.basic.main figures have slightly different structure 
+			use.treat = treat.2$coefficient			
+			clower = use.treat- (1.96*treat.2$stdev)
+			cupper = use.treat+(1.96*treat.2$stdev)
+			use.N.treat = treat.2$N.treatment + treat.2$N.control
+			}
+		if(figure %in% c('white.demo.main','blackmain') & i ==1){
+				#pdf(paste('output/Figure_',fig.nums[i],'.pdf',sep=''))
+				}
+		else{	
+			#pdf(paste('appendix_output/Figure_',fig.nums[i],'.pdf',sep=''))
+			}
+			par(las = 1)
+			par(mar = c(5.1, 4.1, .5, .5))
+			plot(xs, use.treat,
+				ylim = use.ylims,
+				xlim = xlims,
+				type = 'n',
+				ylab = 'Treatment Effect',
+				xlab = 'Treated Group Distance from Projects',
+				xaxt = 'n',
+				yaxt = 'n')
+			abline(h = 0, lty = 2)
+				
+			segments(x0=xs,x1=xs,
+						y0= use.treat+line.offset,y1=cupper)
+			segments(x0=xs,x1=xs,
+						y0= use.treat,y1=clower)
+
+		### Treatment Effects
+			points(xs, use.treat, 
+				pch = pchs[i], 
+				cex = point.size,
+					bg = 'white',
+       			col = 'black')
+			text(xs,use.treat,
+			     paste('(',use.N.treat,')',sep = ''),
+			     cex = cex.N,
+			     pos = 3
+			  )
+			axis(side = 1,
+					at = xs,
+					label = seq(100,1000,100),
+					cex.axis = cex.axis
+					)
+			axis(side = 2,
+					at = use.ys,
+					label = use.ys.lab,
+					cex.axis = cex.axis
+					)	
+			
+		}
+	}	
+
+```
 
