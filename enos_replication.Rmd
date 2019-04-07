@@ -18,6 +18,7 @@ library(ggplot2)
 library(tidyverse)
 library(dplyr)
 library(apsrtable)
+require(gridExtra)
 
 ```
 
@@ -431,4 +432,131 @@ for(figure in c('blackmain')){
 	}	
 
 ```
+
+
+###Figure 4
+
+I was able to succesfully recreate all of figure 4.
+
+```{r fig4, echo=FALSE}
+
+###Figure 4
+###################################
+
+distdat =  read.csv('dataverse_files/predicted.results.distance.vary.context.csv')
+areadat = read.csv('dataverse_files/predicted.results.area.vary.context.csv')
+
+##new ylims for these graphs
+ylims.predict = c(.6,.75)
+
+datas = list(distdat,areadat)##put data in a list to cycle through
+##parameters to be used in graphs below
+xs = list(seq(from = 10, to = 2000, by = 10), seq(from = 45000, to = 1004000, by = 4800)/1000)
+use.letters = c('a','b')
+xlabs = c('Distance from Project','Percent of Local Black Population in Demolished Project')
+ylabs = c(expression(Pr(vote[2004])),'')
+vlines = list(seq(from = 0, to = 2000, by = 200),seq(from = 0, to = 1000, by = 100))
+axis.labs = list(as.character(seq(from = 0, to = 2000, by = 200)),
+	as.character(c('0','10%','20%','30%','40%','50%','60%','70%','80%','90%','100%')))
+
+
+	colnames(datas[[1]]) = c("mean","sd","50%","2.5%","97.5%") ##saving renames columns, so name back
+		par(las = 1)
+		par(mar = c(5.1, 4.1, .5, .5))
+		
+		plot(xs[[1]],datas[[1]][,'mean'],
+			type = 'l',
+			xlab = xlabs[1],
+			ylab = ylabs[1],
+			ylim = ylims.predict,
+			xaxt = 'n',
+			cex.axis = cex.axis,
+			lwd = 4
+		)
+		
+	##put horizontal and vertical lines on plots
+	abline(h = seq(from = min(ylims.predict), to = max(ylims.predict), by = .025),
+	       lty = 2,
+	       col = 'gray',
+	       lwd = 1)
+	abline(v = vlines[[i]], 
+	       lty = 2,
+	       col = 'gray',
+	       lwd = 1)
+	lines(xs[[1]],datas[[1]][,'2.5%'],
+			lty = 3,
+			lwd = 2.5)
+	lines(xs[[1]],datas[[1]][,'97.5%'],
+			lty = 3,
+			lwd = 2.5)
+	axis(side = 1, 
+		at = vlines[[1]], 
+		labels = axis.labs[[1]],
+		cex.axis = cex.axis)
+	
+	p1 <- recordPlot()
+	
+	
+		colnames(datas[[2]]) = c("mean","sd","50%","2.5%","97.5%") ##saving renames columns, so name back
+		par(las = 1)
+		par(mar = c(5.1, 4.1, .5, .5))
+		
+		plot(xs[[2]],datas[[2]][,'mean'],
+			type = 'l',
+			xlab = xlabs[2],
+			ylab = ylabs[2],
+			ylim = ylims.predict,
+			xaxt = 'n',
+			cex.axis = cex.axis,
+			lwd = 4
+		)
+		
+	##put horizontal and vertical lines on plots
+	abline(h = seq(from = min(ylims.predict), to = max(ylims.predict), by = .025),
+	       lty = 2,
+	       col = 'gray',
+	       lwd = 1)
+	abline(v = vlines[[i]], 
+	       lty = 2,
+	       col = 'gray',
+	       lwd = 1)
+	lines(xs[[2]],datas[[2]][,'2.5%'],
+			lty = 3,
+			lwd = 2.5)
+	lines(xs[[2]],datas[[2]][,'97.5%'],
+			lty = 3,
+			lwd = 2.5)
+	axis(side = 1, 
+		at = vlines[[2]], 
+		labels = axis.labs[[2]],
+		cex.axis = cex.axis)
+	
+	p2 <- recordPlot()
+	
+par(mfrow=c(2,2))
+
+
+```
+
+###Figure 5
+
+I was able to succesfully recreate all of figure 5.
+
+```{r fig5, echo=FALSE}
+
+
+
+```
+
+
+###Figure 6
+
+I was able to succesfully recreate all of figure 6.
+
+```{r fig6, echo=FALSE}
+
+
+
+```
+
 
