@@ -19,6 +19,140 @@ library(tidyverse)
 library(dplyr)
 library(apsrtable)
 require(gridExtra)
+require(simpleboot)
+require(boot)
+require(MatchIt)
+require(zelig)
+
+```
+
+```{r dataCreation, cache = TRUE, include=FALSE}
+
+data = read.csv('dataverse_files/data.turnout.csv')
+
+```
+
+```{r dataCreation2, include = FALSE, cache=TRUE}
+##set some data as factors for use below
+data$reg = as.Date(data$reg)
+data$p = as.factor(data$p)
+data$s = as.factor(data$s)
+
+##distances used repeatedly in estimation below
+dists = seq(from = 100, to = 1000, by = 100)
+
+
+##basic diff in diffs in paper, estimated across multiple definitions of white and distances
+cat('begin basic difference-in-differences estimation \n')
+
+namepcts = c(seq(from = .91, to = .96, by = .01),.975,.99,1)
+
+##matrices for stroing results
+res.mat = matrix(nrow=length(namepcts),ncol=length(dists))
+
+white.treat.N = res.mat
+white.treat.effect.mean.boot = res.mat
+white.treat.effect.conf.boot.lower = res.mat
+white.treat.effect.conf.boot.upper = res.mat
+
+black.treat.N = res.mat
+black.treat.effect.mean.boot = res.mat
+black.treat.effect.conf.boot.lower = res.mat
+black.treat.effect.conf.boot.upper = res.mat
+
+####################################
+
+###registration is Illionis is cutoff 27 days prior to election day, limit to these individuals
+use.data = data[data$reg<"2000-10-10"&is.na(data$reg)==F,]
+
+##loop through definitions of white and distances and estimate at each combination
+j <- 7
+	##define a treatment and control group for each name percent
+	useW = use.data[use.data$whitename>=namepcts[j],]
+   useB = use.data[use.data$blackname>=namepcts[j],]
+  
+    for(h in 1:length(dists)){
+      	Wtreat = useW[useW$demo.distance<=dists[h],]
+      	Btreat = useB[useB$demo.distance<=dists[h],]
+      	Wcont = useW[useW$demo.distance>dists[h],]
+      	Bcont = useB[useB$demo.distance>dists[h],]     		
+	
+      	white.treat.N[j,h] = nrow(Wtreat)
+      	black.treat.N[j,h] = nrow(Btreat)
+	      	
+	   ##for white and black subjects, perform t test of differences of means with boostrapped standard errors  	
+		if(white.treat.N[j,h] > 0){
+			white.boot = two.boot((Wtreat$vote2004-Wtreat$vote2000),(Wcont$vote2004-Wcont$vote2000),mean, R = 1000, na.rm=T)
+			white.treat.effect.mean.boot[j,h] = white.boot$t0
+		white.boot.ci = boot.ci(white.boot, type = 'basic')
+			white.treat.effect.conf.boot.lower[j,h] = white.boot.ci$basic[4]
+			white.treat.effect.conf.boot.upper[j,h] = white.boot.ci$basic[5]
+		      		}
+		      		
+	if(black.treat.N[j,h] > 0){
+		black.boot = two.boot((Btreat$vote2004-Btreat$vote2000),(Bcont$vote2004-Bcont$vote2000),mean, R = 1000, na.rm=T)
+		black.treat.effect.mean.boot[j,h] = black.boot$t0
+		black.boot.ci = boot.ci(black.boot, type = 'basic')
+		black.treat.effect.conf.boot.lower[j,h] = black.boot.ci$basic[4]
+		black.treat.effect.conf.boot.upper[j,h] = black.boot.ci$basic[5]		
+		 }
+		 }
+
+```
+
+```{r part2, include=FALSE }
+
+##use data created above for whites
+usedata = white.data
+
+
+##create chunks for estimation
+distances = seq(from = 10, to = 2000, by = 10)
+areas = seq(from = 0, to = 1, length.out = length(distances))
+			      
+##storage bin
+outmat.s = matrix(ncol = 5, nrow = 0)
+outmat.d = matrix(ncol = 5, nrow = 0)
+
+out.reg = zelig(vote2004~log(demo.distance)+log(context_black)+vote2000,data = usedata, model = 'ls', cite = F)
+
+##begin simulations across variable values
+#for(i in seq(1:length(distances))){
+for(i in seq(1:length(distances))){
+	print(i)
+	ptm <- proc.time()  ##start time
+
+	use.distance = distances[i]
+	out.d.1 = setx(out.reg,
+		vote2000 = 1,
+		demo.distance = use.distance)
+
+	out.d.sims = sim(out.reg,
+		x = out.d.1)
+	
+	use.area = areas[i]	
+	out.s.1 = setx(out.reg,
+		vote2000 = 1,
+		demo.distance = 100,
+		context_black = use.area)
+
+	out.s.sims = sim(out.reg,
+		x = out.s.1)
+
+	outstats.d = summary(out.d.sims)$stats[[1]]
+	outstats.s = summary(out.s.sims)$stats[[1]]
+	
+	outmat.d = rbind(outmat.d,outstats.d)
+	outmat.s = rbind(outmat.s,outstats.s)
+
+	print(proc.time() - ptm)  ##end time
+	}
+
+##store results for graphics and table	
+predicted.results.distance.vary.context = outmat.d
+predicted.results.area.vary.context = outmat.s
+
+out.reg.predictions = out.reg
 
 ```
 
@@ -27,10 +161,6 @@ require(gridExtra)
 ##create_tables_and_figures_only.r
 ###create output for Enos 'What the Demolition of Public Housing Teaches Us About the Impact of Racial Threat on Political Behavior' 
 ###RdE June 2014
-
-rm(list = ls())
-
-cat('creating output \n')
 
 ###master graphic parameters for graphics 
 ylims = c(-.35,.1)
@@ -65,14 +195,28 @@ I was able to succesfully recreate all of figure 1.
 #############################
 
 ##load data
-wtreat = read.csv('dataverse_files/white.treat.effect.mean.boot.csv') 
-wtreat.lower = read.csv('dataverse_files/white.treat.effect.conf.boot.lower.csv') 
-wtreat.upper = read.csv('dataverse_files/white.treat.effect.conf.boot.upper.csv') 
-Nwtreat = read.csv('dataverse_files/white.treat.N.csv')
-btreat = read.csv('dataverse_files/black.treat.effect.mean.boot.csv') 
-btreat.lower = read.csv('dataverse_files/black.treat.effect.conf.boot.lower.csv') 
-btreat.upper = read.csv('dataverse_files/black.treat.effect.conf.boot.upper.csv') 
-Nbtreat = read.csv('dataverse_files/black.treat.N.csv')
+
+# For some reason, I had to turn the data into dataframe
+
+wtreat = as.data.frame(white.treat.effect.mean.boot)
+wtreat.lower = as.data.frame(white.treat.effect.conf.boot.lower)
+wtreat.upper = as.data.frame(white.treat.effect.conf.boot.upper)
+Nwtreat = as.data.frame(white.treat.N)
+
+btreat = as.data.frame(black.treat.effect.mean.boot)
+btreat.lower = as.data.frame(black.treat.effect.conf.boot.lower)
+btreat.upper = as.data.frame(black.treat.effect.conf.boot.upper)
+Nbtreat = as.data.frame(black.treat.N)
+
+#wtreat2 = read.csv('dataverse_files/white.treat.effect.mean.boot.csv') 
+#wtreat.lower2 = read.csv('dataverse_files/white.treat.effect.conf.boot.lower.csv') 
+#wtreat.upper2 = read.csv('dataverse_files/white.treat.effect.conf.boot.upper.csv') 
+#Nwtreat2 = read.csv('dataverse_files/white.treat.N.csv')
+#btreat2 = read.csv('dataverse_files/black.treat.effect.mean.boot.csv') 
+#btreat.lower2 = read.csv('dataverse_files/black.treat.effect.conf.boot.lower.csv') 
+#btreat.upper2 = read.csv('dataverse_files/black.treat.effect.conf.boot.upper.csv') 
+#Nbtreat2 = read.csv('dataverse_files/black.treat.N.csv')
+
 ##letters for marking graphs, one is not used
 use.letters = c('a','b','c','d','e','f','skip','g','h')
 
@@ -161,9 +305,6 @@ i <- 7;
 		)	
 
 	#dev.off()
-
-
-
 ```
 
 ## Figure 2

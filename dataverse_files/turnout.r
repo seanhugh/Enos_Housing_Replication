@@ -5,7 +5,7 @@
 ptm <- proc.time()  ##start time of analysis
 
 
-data = read.csv('indata_static/data.turnout.csv')
+data = read.csv('dataverse_files/data.turnout.csv')
 ##set some data as factors for use below
 data$reg = as.Date(data$reg)
 data$p = as.factor(data$p)
