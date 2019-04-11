@@ -1,6 +1,8 @@
 ---
 title: "Enos_Replication"
-output: html_document
+output:
+ pdf_document:
+  md_extension: +raw_tex
 ---
 
 ```{r setup, include=FALSE}
@@ -18,11 +20,20 @@ library(ggplot2)
 library(tidyverse)
 library(dplyr)
 library(apsrtable)
-require(gridExtra)
-require(simpleboot)
-require(boot)
-require(MatchIt)
-require(zelig)
+library(gridExtra)
+library(simpleboot)
+library(boot)
+library(MatchIt)
+library(Zelig)
+
+
+
+# Data understanding
+
+# Table 1
+# Tryig to understand if dif. variables will affect voter turnout
+# Left hand variable is white voter turnout in 2004
+# Data is lik 800,000 rows of people saying whether they voted in 2000 or 2004 (binary)
 
 ```
 
@@ -33,6 +44,9 @@ data = read.csv('dataverse_files/data.turnout.csv')
 ```
 
 ```{r dataCreation2, include = FALSE, cache=TRUE}
+
+# I run turnout.r, with modified loops so that it takes less time
+
 ##set some data as factors for use below
 data$reg = as.Date(data$reg)
 data$p = as.factor(data$p)
@@ -82,7 +96,7 @@ j <- 7
 	      	
 	   ##for white and black subjects, perform t test of differences of means with boostrapped standard errors  	
 		if(white.treat.N[j,h] > 0){
-			white.boot = two.boot((Wtreat$vote2004-Wtreat$vote2000),(Wcont$vote2004-Wcont$vote2000),mean, R = 1000, na.rm=T)
+			white.boot = two.boot((Wtreat$vote2004-Wtreat$vote2000),(Wcont$vote2004-Wcont$vote2000),mean, R = 2, na.rm=T)
 			white.treat.effect.mean.boot[j,h] = white.boot$t0
 		white.boot.ci = boot.ci(white.boot, type = 'basic')
 			white.treat.effect.conf.boot.lower[j,h] = white.boot.ci$basic[4]
@@ -90,7 +104,7 @@ j <- 7
 		      		}
 		      		
 	if(black.treat.N[j,h] > 0){
-		black.boot = two.boot((Btreat$vote2004-Btreat$vote2000),(Bcont$vote2004-Bcont$vote2000),mean, R = 1000, na.rm=T)
+		black.boot = two.boot((Btreat$vote2004-Btreat$vote2000),(Bcont$vote2004-Bcont$vote2000),mean, R = 2, na.rm=T)
 		black.treat.effect.mean.boot[j,h] = black.boot$t0
 		black.boot.ci = boot.ci(black.boot, type = 'basic')
 		black.treat.effect.conf.boot.lower[j,h] = black.boot.ci$basic[4]
@@ -100,61 +114,6 @@ j <- 7
 
 ```
 
-```{r part2, include=FALSE }
-
-##use data created above for whites
-usedata = white.data
-
-
-##create chunks for estimation
-distances = seq(from = 10, to = 2000, by = 10)
-areas = seq(from = 0, to = 1, length.out = length(distances))
-			      
-##storage bin
-outmat.s = matrix(ncol = 5, nrow = 0)
-outmat.d = matrix(ncol = 5, nrow = 0)
-
-out.reg = zelig(vote2004~log(demo.distance)+log(context_black)+vote2000,data = usedata, model = 'ls', cite = F)
-
-##begin simulations across variable values
-#for(i in seq(1:length(distances))){
-for(i in seq(1:length(distances))){
-	print(i)
-	ptm <- proc.time()  ##start time
-
-	use.distance = distances[i]
-	out.d.1 = setx(out.reg,
-		vote2000 = 1,
-		demo.distance = use.distance)
-
-	out.d.sims = sim(out.reg,
-		x = out.d.1)
-	
-	use.area = areas[i]	
-	out.s.1 = setx(out.reg,
-		vote2000 = 1,
-		demo.distance = 100,
-		context_black = use.area)
-
-	out.s.sims = sim(out.reg,
-		x = out.s.1)
-
-	outstats.d = summary(out.d.sims)$stats[[1]]
-	outstats.s = summary(out.s.sims)$stats[[1]]
-	
-	outmat.d = rbind(outmat.d,outstats.d)
-	outmat.s = rbind(outmat.s,outstats.s)
-
-	print(proc.time() - ptm)  ##end time
-	}
-
-##store results for graphics and table	
-predicted.results.distance.vary.context = outmat.d
-predicted.results.area.vary.context = outmat.s
-
-out.reg.predictions = out.reg
-
-```
 
 ```{r setup2, include=FALSE}
 
@@ -307,6 +266,38 @@ i <- 7;
 	#dev.off()
 ```
 
+```{r table1Data, include=FALSE}
+
+out.reg = lm(vote2004~log(demo.distance)+log(context_black)+vote2000,
+             
+             data = data,
+             
+             cite = F)
+
+```
+
+```{r table1, echo=FALSE, results='asis'}
+
+stargazer(out.reg,
+	style = "ajps",
+	digits = 3
+	)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+# The following uses old CSV data:
+
 ## Figure 2
 
 I was able to succesfully recreate all of figure 2.
@@ -317,85 +308,24 @@ I was able to succesfully recreate all of figure 2.
 # Figures 2 
 #################
 
-##this cycles thorugh a bunch of dataframes, each of which is needed for a different graph
-for(figure in c('white.demo.main')){
-	if(figure == 'white.basic.main'){
-		##this group is different than the rest because the second set is not actually a diff in diff, but calling it "diffs" for consistency
-		treat = read.csv('dataverse_files/white.match.basic.csv')
-		treat.2 = read.csv('dataverse_files/white.match.basic.property.csv')
-		fig.nums = c('A3','A4') ##figure names
-		pchs = c(17,17) ##point types
-		}
-	if(figure == 'white.demo.main'){
+    ##this cycles thorugh a bunch of dataframes, each of which is needed for a different graph
+    figure <- 'white.demo.main'
+
 		treat = read.csv('dataverse_files/white.match.nondemolished.csv')
 		diffs = read.csv('dataverse_files/white.match.nondemolished.diffs.csv')
+		
 		fig.nums = c('2','A5')
 		pchs = c(17,22)
-		}
-	if(figure == 'white.demo.property'){
-		treat = read.csv('dataverse_files/white.match.nondemolished.property.csv')
-		diffs = read.csv('dataverse_files/white.match.nondemolished.diffs.property.csv')
-		fig.nums = c('A6','A7')	
-		pchs = c(17,22)
-		}	
-	if(figure == 'white.demo.localrace'){
-		treat = read.csv('dataverse_files/white.match.nondemolished.localrace.csv')
-		diffs = read.csv('dataverse_files/white.match.nondemolished.diffs.localrace.csv')
-		fig.nums = c('A8','A9')			
-		pchs = c(17,22)
-		}
-	if(figure == 'blackmain'){
-		treat = read.csv('dataverse_files/white.match.black.property.csv')
-		diffs = read.csv('dataverse_files/white.match.black.diffs.property.csv')
-		fig.nums = c('3','A12')
-		pchs = c(17,21)			
-		}
-	if(figure == 'blackcensus'){
-		treat = read.csv('dataverse_files/white.match.black.csv')
-		diffs = read.csv('dataverse_files/white.match.black.diffs.csv')
-		fig.nums = c('A10','A11')
-		pchs = c(17,21)	
-		}
+		use.ylims = ylims
+		use.ys.lab = ys.lab
+		use.ys = ys
 
-
-	##define axis for different graphs
-	if(figure %in% c('white.basic.main','white.demo.main','blackmain')){
-			use.ylims = ylims
-			use.ys.lab = ys.lab
-			use.ys = ys
-		}
-	else{
-			use.ylims = ylims.2
-			use.ys.lab = ys.lab.2
-			use.ys = ys.2
-		}
-
-	##go through pairs for each pair of dataframe
-	for(i in 1){
-		if(i == 1){ 	
 			use.treat = treat$coefficient			
 			clower = use.treat-(1.96*treat$stdev)
 			cupper = use.treat+(1.96*treat$stdev)
 			use.N.treat = treat$N.treatment + treat$N.control
-			}			
-		if(i == 2 & figure != 'white.basic.main'){	
-			use.treat = diffs$mean.diff			
-			clower = diffs$low.ci
-			cupper = diffs$high.ci
-			use.N.treat = diffs$N
-			}	
-		if(i == 2 & figure == 'white.basic.main'){	##white.basic.main figures have slightly different structure 
-			use.treat = treat.2$coefficient			
-			clower = use.treat- (1.96*treat.2$stdev)
-			cupper = use.treat+(1.96*treat.2$stdev)
-			use.N.treat = treat.2$N.treatment + treat.2$N.control
-			}
-		if(figure %in% c('white.demo.main','blackmain') & i ==1){
-				#pdf(paste('output/Figure_',fig.nums[i],'.pdf',sep=''))
-				}
-		else{	
-			#pdf(paste('appendix_output/Figure_',fig.nums[i],'.pdf',sep=''))
-			}
+
+			i <- 1
 			par(las = 1)
 			par(mar = c(5.1, 4.1, .5, .5))
 			plot(xs, use.treat,
@@ -434,9 +364,7 @@ for(figure in c('white.demo.main')){
 					label = use.ys.lab,
 					cex.axis = cex.axis
 					)	
-			
-		}
-	}	
+		
 
 
 ```
